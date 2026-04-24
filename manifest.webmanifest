@@ -1,7 +1,7 @@
 {
-  "name": "Väder Godby",
-  "short_name": "Godby",
-  "description": "Realtidsväder och 48 h prognos för Godby, Åland",
+  "name": "Väder Mariehamn",
+  "short_name": "Mariehamn",
+  "description": "Realtidsväder och 48 h prognos för Mariehamn, Åland",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

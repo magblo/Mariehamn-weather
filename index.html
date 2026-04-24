@@ -7,13 +7,13 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Godby">
+<meta name="apple-mobile-web-app-title" content="Mariehamn">
 <meta name="theme-color" content="#f5f7fb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<title>Väder Godby</title>
+<title>Väder Mariehamn</title>
 <style>
   :root {
     color-scheme: light dark;
@@ -162,7 +162,7 @@
 <div class="wrap">
   <header>
     <div>
-      <h1 class="title">Väder · <span class="loc">Godby</span></h1>
+      <h1 class="title">Väder · <span class="loc">Mariehamn</span></h1>
       <p class="sub">Realtid och 48 h prognos · Åland</p>
     </div>
     <button id="reload" title="Uppdatera">↻ Uppdatera</button>
@@ -178,7 +178,7 @@
 </div>
 
 <script>
-const GODBY = { lat: 60.2308, lon: 19.8886 };
+const MARIEHAMN = { lat: 60.0971, lon: 19.9348 };
 const BBOX = "19.3,59.8,20.5,60.6";
 const FMI_NS = "http://xml.fmi.fi/schema/wfs/2.0";
 const GML_NS = "http://www.opengis.net/gml/3.2";
@@ -270,7 +270,7 @@ async function fetchObservations() {
   }
 
   const ranked = [...stations.values()]
-    .map(s => ({ ...s, dist: haversine(GODBY, s) }))
+    .map(s => ({ ...s, dist: haversine(MARIEHAMN, s) }))
     .sort((a, b) => a.dist - b.dist);
   return ranked.find(s => s.values.t2m) ?? ranked[0];
 }
@@ -280,7 +280,7 @@ async function fetchForecast() {
   const params = ["temperature", "windspeedms", "winddirection", "precipitation1h", "weathersymbol3"];
   const xml = await wfs({
     storedquery_id: "fmi::forecast::harmonie::surface::point::simple",
-    latlon: `${GODBY.lat},${GODBY.lon}`,
+    latlon: `${MARIEHAMN.lat},${MARIEHAMN.lon}`,
     parameters: params.join(","),
     endtime: end,
     timestep: "60",
@@ -317,7 +317,7 @@ function renderNow(s) {
         <div class="now-temp">${t != null ? t.toFixed(1) : "–"}<span class="unit">°C</span></div>
       </div>
       <div class="now-meta">
-        ${s.dist.toFixed(1)} km från Godby<br>
+        ${s.dist.toFixed(1)} km från Mariehamn<br>
         ${new Date(time).toLocaleString("sv-SE", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}
       </div>
     </div>
