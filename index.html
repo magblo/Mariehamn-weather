@@ -367,6 +367,15 @@ async function load() {
 }
 
 document.getElementById("reload").addEventListener("click", load);
+
+// Scroll to top whenever the PWA is brought into the foreground
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+});
+
+window.scrollTo({ top: 0, behavior: "instant" });
 load();
 </script>
 </body>
