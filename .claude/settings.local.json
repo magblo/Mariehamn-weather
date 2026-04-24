@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(node godby-weather.js)",
+      "Bash(curl -sS \"https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::forecast::harmonie::surface::point::simple&place=Godby&parameters=temperature,windspeedms\")",
+      "Bash(curl -sS \"https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::observations::weather::simple&bbox=19.5,60.0,20.5,60.5&parameters=temperature&maxlocations=5\")",
+      "Bash(curl -sS \"https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::ef::stations&bbox=19.3,59.8,20.5,60.6\")",
+      "Bash(curl -sS \"https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::observations::weather::multipointcoverage&bbox=19.3,59.8,20.5,60.6&parameters=t2m\")",
+      "Bash(date -u -v-30M +%Y-%m-%dT%H:%M:%SZ)",
+      "Bash(curl -sS \"https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::observations::weather::multipointcoverage&bbox=19.3,59.8,20.5,60.6&parameters=t2m&starttime=$\\(date -u -v-30M +%Y-%m-%dT%H:%M:%SZ\\)\")",
+      "Bash(gh auth *)",
+      "Read(//Users/magnus/**)",
+      "Bash(ssh -T git@github.com)"
+    ]
+  }
+}

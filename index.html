@@ -1,7 +1,18 @@
 <!DOCTYPE html>
+
 <html lang="sv">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Godby">
+<meta name="theme-color" content="#f5f7fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <title>Väder Godby</title>
 <style>
   :root {
@@ -43,8 +54,14 @@
       radial-gradient(1000px 500px at 110% 10%, var(--bg-grad-2), transparent 55%),
       var(--bg);
     min-height: 100vh;
-    padding: 2.5rem 1.25rem 4rem;
+    min-height: 100dvh;
+    padding:
+      calc(env(safe-area-inset-top, 0px) + 1.25rem)
+      calc(env(safe-area-inset-right, 0px) + 1.25rem)
+      calc(env(safe-area-inset-bottom, 0px) + 2.5rem)
+      calc(env(safe-area-inset-left, 0px) + 1.25rem);
     -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: contain;
   }
   .wrap { max-width: 720px; margin: 0 auto; }
 
@@ -101,24 +118,28 @@
   .metric .k { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
   .metric .v { font-size: 1.15rem; font-weight: 500; margin-top: .15rem; font-variant-numeric: tabular-nums; }
   .metric .v small { color: var(--muted); font-weight: 400; font-size: .8rem; margin-left: .15rem; }
+  .wind-arrow { display: inline-block; color: var(--accent); transition: transform .3s ease; line-height: 1; }
 
   .forecast { display: flex; flex-direction: column; }
   .hour {
     display: grid;
-    grid-template-columns: 56px 32px 1fr auto auto;
-    align-items: center;
-    gap: .75rem;
+    grid-template-columns: 48px 30px 1fr auto;
+    grid-template-areas:
+      "time icon desc temp"
+      "time icon meta temp";
+    column-gap: .7rem;
+    row-gap: .1rem;
     padding: .7rem .25rem;
     border-bottom: 1px solid var(--border);
   }
   .hour:last-child { border-bottom: none; }
-  .hour .time { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 500; }
-  .hour .icon { font-size: 1.4rem; line-height: 1; text-align: center; }
-  .hour .desc { font-size: .85rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .hour .wind { font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 52px; text-align: right; }
-  .hour .rain { font-size: .78rem; color: var(--accent); font-variant-numeric: tabular-nums; min-width: 52px; text-align: right; margin-left: .25rem; }
-  .hour .rain.zero { color: var(--muted); opacity: .45; }
-  .hour .temp { font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 42px; text-align: right; }
+  .hour .time { grid-area: time; align-self: center; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 500; }
+  .hour .icon { grid-area: icon; align-self: center; font-size: 1.4rem; line-height: 1; text-align: center; }
+  .hour .desc { grid-area: desc; align-self: end; font-size: .9rem; color: var(--text); line-height: 1.25; }
+  .hour .meta { grid-area: meta; align-self: start; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; display: flex; gap: .65rem; }
+  .hour .meta .rain { color: var(--accent); }
+  .hour .meta .rain.zero { color: var(--muted); opacity: .45; }
+  .hour .temp { grid-area: temp; align-self: center; font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; }
   .hour.new-day { border-top: 1px solid var(--border); margin-top: .25rem; padding-top: .9rem; position: relative; }
   .hour.new-day::before {
     content: attr(data-day);
@@ -142,7 +163,7 @@
   <header>
     <div>
       <h1 class="title">Väder · <span class="loc">Godby</span></h1>
-      <p class="sub">Realtid och 24 h prognos · Åland</p>
+      <p class="sub">Realtid och 48 h prognos · Åland</p>
     </div>
     <button id="reload" title="Uppdatera">↻ Uppdatera</button>
   </header>
@@ -150,7 +171,7 @@
   <div class="section-label">Just nu</div>
   <div id="now" class="card"><span class="skeleton">Laddar…</span></div>
 
-  <div class="section-label">Kommande 24 timmar</div>
+  <div class="section-label">Kommande 48 timmar</div>
   <div id="forecast" class="card"><span class="skeleton">Laddar…</span></div>
 
   <footer>Data från <a href="https://en.ilmatieteenlaitos.fi/open-data" target="_blank" rel="noopener">Meteorologiska institutet (FMI)</a> · Öppen data</footer>
@@ -162,14 +183,14 @@ const BBOX = "19.3,59.8,20.5,60.6";
 const FMI_NS = "http://xml.fmi.fi/schema/wfs/2.0";
 const GML_NS = "http://www.opengis.net/gml/3.2";
 
-const OBS_PARAMS = ["t2m", "ws_10min", "wd_10min", "rh", "r_1h", "p_sea"];
+const OBS_PARAMS = ["t2m", "ws_10min", "wd_10min", "rh", "r_24h"];
+const windArrow = deg => `<span class="wind-arrow" style="transform:rotate(${deg}deg)" aria-label="${Math.round(deg)}°">↓</span>`;
 const OBS_LABEL = {
-  t2m:      { name: "Temperatur",     unit: "°C" },
-  ws_10min: { name: "Vind",           unit: "m/s" },
-  wd_10min: { name: "Vindriktning",   unit: "°" },
-  rh:       { name: "Luftfuktighet",  unit: "%" },
-  r_1h:     { name: "Nederbörd (1h)", unit: "mm" },
-  p_sea:    { name: "Lufttryck",      unit: "hPa" },
+  t2m:      { name: "Temperatur",      unit: "°C" },
+  ws_10min: { name: "Vind",            unit: "m/s" },
+  wd_10min: { name: "Vindriktning",    unit: "",     format: windArrow },
+  rh:       { name: "Luftfuktighet",   unit: "%" },
+  r_24h:    { name: "Nederbörd (24h)", unit: "mm",   format: v => v.toFixed(1) },
 };
 
 // FMI weathersymbol3 (förenklad) - https://www.ilmatieteenlaitos.fi/latauspalvelun-pikaohje
@@ -202,10 +223,13 @@ async function wfs(params) {
 
 // Hämta observationer (simple) + stationsnamn (multipointcoverage pointMember)
 async function fetchObservations() {
-  const start = new Date(Date.now() - 60 * 60 * 1000).toISOString().replace(/\.\d+Z$/, "Z");
+  const now = Date.now();
+  const start = new Date(now - 24 * 60 * 60 * 1000).toISOString().replace(/\.\d+Z$/, "Z");
+  const recent = new Date(now - 60 * 60 * 1000).toISOString().replace(/\.\d+Z$/, "Z");
+  const fmiParams = [...OBS_PARAMS.filter(p => p !== "r_24h"), "r_1h"].join(",");
   const [obsXml, namesXml] = await Promise.all([
-    wfs({ storedquery_id: "fmi::observations::weather::simple", bbox: BBOX, parameters: OBS_PARAMS.join(","), starttime: start }),
-    wfs({ storedquery_id: "fmi::observations::weather::multipointcoverage", bbox: BBOX, parameters: "t2m", starttime: start }),
+    wfs({ storedquery_id: "fmi::observations::weather::simple", bbox: BBOX, parameters: fmiParams, starttime: start }),
+    wfs({ storedquery_id: "fmi::observations::weather::multipointcoverage", bbox: BBOX, parameters: "t2m", starttime: recent }),
   ]);
 
   // Bygg position → namn
@@ -227,13 +251,23 @@ async function fetchObservations() {
     const name = el.getElementsByTagNameNS(FMI_NS, "ParameterName")[0].textContent;
     const value = parseFloat(el.getElementsByTagNameNS(FMI_NS, "ParameterValue")[0].textContent);
     if (Number.isNaN(value)) continue;
-    if (!stations.has(key)) stations.set(key, { lat, lon, name: nameByPos.get(key) ?? "Okänd station", values: {} });
+    if (!stations.has(key)) stations.set(key, { lat, lon, name: nameByPos.get(key) ?? "Okänd station", values: {}, rainHistory: [] });
     const s = stations.get(key);
+    if (name === "r_1h") s.rainHistory.push({ time, value });
     const prev = s.values[name];
     if (!prev || new Date(time) > new Date(prev.time)) s.values[name] = { time, value };
   }
 
   if (stations.size === 0) throw new Error("Inga observationer hittades.");
+
+  // Summera 24h nederbörd
+  for (const s of stations.values()) {
+    if (s.rainHistory.length) {
+      const sum = s.rainHistory.reduce((a, r) => a + (r.value > 0 ? r.value : 0), 0);
+      const latest = s.rainHistory.reduce((a, r) => new Date(r.time) > new Date(a.time) ? r : a).time;
+      s.values.r_24h = { time: latest, value: sum };
+    }
+  }
 
   const ranked = [...stations.values()]
     .map(s => ({ ...s, dist: haversine(GODBY, s) }))
@@ -242,7 +276,7 @@ async function fetchObservations() {
 }
 
 async function fetchForecast() {
-  const end = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().replace(/\.\d+Z$/, "Z");
+  const end = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString().replace(/\.\d+Z$/, "Z");
   const params = ["temperature", "windspeedms", "winddirection", "precipitation1h", "weathersymbol3"];
   const xml = await wfs({
     storedquery_id: "fmi::forecast::harmonie::surface::point::simple",
@@ -260,7 +294,7 @@ async function fetchForecast() {
     if (!byTime.has(time)) byTime.set(time, { time });
     byTime.get(time)[name] = value;
   }
-  return [...byTime.values()].sort((a, b) => a.time.localeCompare(b.time)).slice(0, 24);
+  return [...byTime.values()].sort((a, b) => a.time.localeCompare(b.time)).slice(0, 48);
 }
 
 function renderNow(s) {
@@ -268,7 +302,13 @@ function renderNow(s) {
   const time = s.values.t2m?.time ?? Object.values(s.values)[0]?.time;
   const metrics = OBS_PARAMS
     .filter(p => p !== "t2m" && s.values[p])
-    .map(p => `<div class="metric"><div class="k">${OBS_LABEL[p].name}</div><div class="v">${s.values[p].value}<small> ${OBS_LABEL[p].unit}</small></div></div>`)
+    .map(p => {
+      const lbl = OBS_LABEL[p];
+      const raw = s.values[p].value;
+      const val = lbl.format ? lbl.format(raw) : raw;
+      const unit = lbl.unit ? `<small> ${lbl.unit}</small>` : "";
+      return `<div class="metric"><div class="k">${lbl.name}</div><div class="v">${val}${unit}</div></div>`;
+    })
     .join("");
   document.getElementById("now").innerHTML = `
     <div class="now-head">
@@ -303,8 +343,10 @@ function renderForecast(rows) {
       <div class="time">${hh}</div>
       <div class="icon">${icon}</div>
       <div class="desc">${desc}</div>
-      <div class="wind">${wind}</div>
-      <div class="rain ${rainVal > 0 ? "" : "zero"}">${rain}</div>
+      <div class="meta">
+        <span class="wind">${wind}</span>
+        <span class="rain ${rainVal > 0 ? "" : "zero"}">${rain}</span>
+      </div>
       <div class="temp">${temp}</div>
     </div>`;
   }).join("");
